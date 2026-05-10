@@ -1,0 +1,80 @@
+syntax = 'proto3';
+
+package com.science.foundry.tools.grpc_interfaces.freedom_evo;
+
+message Command {
+  oneof command {
+    Initialize initialize = 1;
+    Aspirate aspirate = 2;
+    Dispense dispense = 3;
+    Mix mix = 4;
+    WashTips wash_tips = 5;
+    GetDiTi get_diti = 6;
+    DropDiTi drop_diti = 7;
+    GetStatus get_status = 8;
+  }
+
+  message Initialize {}
+
+  message Aspirate {
+    string rack_label = 1;
+    string rack_id = 2;
+    string rack_type = 3;
+    int32 position = 4;
+    string tube_id = 5;
+    double volume = 6;
+    string liquid_class = 7;
+    string tip_type = 8;
+    int32 tip_mask = 9;
+  }
+
+  message Dispense {
+    string rack_label = 1;
+    string rack_id = 2;
+    string rack_type = 3;
+    int32 position = 4;
+    string tube_id = 5;
+    double volume = 6;
+    string liquid_class = 7;
+    string tip_type = 8;
+    int32 tip_mask = 9;
+  }
+
+  message Mix {
+    string rack_label = 1;
+    string rack_id = 2;
+    string rack_type = 3;
+    int32 position = 4;
+    string tube_id = 5;
+    double volume = 6;
+    string liquid_class = 7;
+    string tip_type = 8;
+    int32 tip_mask = 9;
+    int32 cycles = 10;
+  }
+
+  message WashTips {
+    string wash_station_id = 1;
+  }
+
+  message GetDiTi {
+    string rack_label = 1;
+    string rack_id = 2;
+    string rack_type = 3;
+    int32 position = 4;
+  }
+
+  message DropDiTi {
+    string rack_label = 1;
+    string rack_id = 2;
+    string rack_type = 3;
+    int32 position = 4;
+  }
+
+  message GetStatus {}
+}
+
+message Config {
+  string evoware_path = 1;
+  bool simulate = 2;
+}
