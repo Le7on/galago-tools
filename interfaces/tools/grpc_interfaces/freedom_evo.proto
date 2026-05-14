@@ -2,79 +2,353 @@ syntax = 'proto3';
 
 package com.science.foundry.tools.grpc_interfaces.freedom_evo;
 
+// ============================================================================
+// Command — top-level oneof for all Freedom EVO operations
+// ============================================================================
+
 message Command {
   oneof command {
-    Initialize initialize = 1;
-    Aspirate aspirate = 2;
-    Dispense dispense = 3;
-    Mix mix = 4;
-    WashTips wash_tips = 5;
-    GetDiTi get_diti = 6;
-    DropDiTi drop_diti = 7;
-    GetStatus get_status = 8;
+    // ── Lifecycle ──────────────────────────────────────────────────────
+    Logon                logon                 = 1;
+    Logoff               logoff                = 2;
+    Initialize           initialize            = 3;
+    Shutdown             shutdown              = 4;
+
+    // ── Script execution (.esc) ────────────────────────────────────────
+    PrepareScript        prepare_script        = 5;
+    StartScript          start_script          = 6;
+
+    // ── Process execution (Plus only) ──────────────────────────────────
+    PrepareProcess       prepare_process       = 7;
+    StartProcess         start_process         = 8;
+    CancelProcess        cancel_process        = 9;
+
+    // ── Runtime control ────────────────────────────────────────────────
+    Pause                pause                 = 10;
+    Resume               resume                = 11;
+    Stop                 stop                  = 12;
+
+    // ── Liquid handling (ESC-format commands) ──────────────────────────
+    Aspirate             aspirate              = 13;
+    Dispense             dispense              = 14;
+    Mix                  mix                   = 15;
+    WashTips             wash_tips             = 16;
+    GetDiTi              get_diti              = 17;
+    DropDiTi             drop_diti             = 18;
+
+    // ── Status queries ─────────────────────────────────────────────────
+    GetSystemStatus      get_system_status     = 19;
+    GetScriptStatus      get_script_status     = 20;
+    GetProcessStatus     get_process_status    = 21;
+
+    // ── System info ────────────────────────────────────────────────────
+    GetSystemInfo        get_system_info       = 22;
+
+    // ── Remote mode & UI ───────────────────────────────────────────────
+    SetRemoteMode        set_remote_mode       = 23;
+    HideGUI              hide_gui              = 24;
+    SetLamp              set_lamp              = 25;
+    SetDoorLocks         set_door_locks        = 26;
+
+    // ── Liquid class queries ───────────────────────────────────────────
+    GetLCCount           get_lc_count          = 27;
+    GetLCInfo            get_lc_info           = 28;
+    GetSubLCCount        get_sub_lc_count      = 29;
+    GetSubLCInfo         get_sub_lc_info       = 30;
+
+    // ── Device queries ─────────────────────────────────────────────────
+    GetDeviceCount       get_device_count      = 31;
+    GetDevice            get_device            = 32;
+
+    // ── Labware / Deck queries ─────────────────────────────────────────
+    GetNumberOfRacks     get_number_of_racks   = 33;
+    GetRack              get_rack              = 34;
+
+    // ── Variables ──────────────────────────────────────────────────────
+    GetScriptVariable    get_script_variable   = 35;
+    SetScriptVariable    set_script_variable   = 36;
+
+    // ── Script interface (programmatic .esc construction) ──────────────
+    AddScriptLine        add_script_line       = 37;
+    SaveScript           save_script           = 38;
+
+    // ── Error handling ─────────────────────────────────────────────────
+    ClearError           clear_error           = 39;
   }
 
-  message Initialize {}
+  // ── Lifecycle messages ───────────────────────────────────────────────
+
+  message Logon {
+    string user_name    = 1;
+    string password     = 2;
+    bool   plus_mode    = 3;
+    bool   simulation   = 4;
+  }
+  message Logoff {}
+  message Initialize {}   // blocking — must be called before execution
+  message Shutdown {}     // blocking — closes EVOware
+
+  // ── Script execution ─────────────────────────────────────────────────
+
+  message PrepareScript {
+    string script_name    = 1;   // .esc file name (e.g. "MyScript.esc")
+  }
+  // Response: int64 script_id (populated by server)
+
+  message StartScript {
+    int64  script_id      = 1;
+    int32  start_line     = 2;   // 0-based; note: not fully implemented in EVOware
+    int32  end_line       = 3;   // 0 = run to end
+  }
+
+  // ── Process execution (Plus only) ────────────────────────────────────
+
+  message PrepareProcess {
+    string process_name   = 1;
+  }
+  message StartProcess {
+    string process_name   = 1;
+    string objects        = 2;   // "Source mtp{003},Dest dst"
+    int32  priority       = 3;   // 0=normal
+    bool   emergency      = 4;   // PP_EMERGENCY if true
+  }
+  // Response: int64 process_id
+  message CancelProcess {
+    int64  process_id     = 1;
+  }
+
+  // ── Runtime control ──────────────────────────────────────────────────
+
+  message Pause {}
+  message Resume {}
+  message Stop {}
+
+  // ── Liquid handling (.esc format) ────────────────────────────────────
 
   message Aspirate {
-    string rack_label = 1;
-    string rack_id = 2;
-    string rack_type = 3;
-    int32 position = 4;
-    string tube_id = 5;
-    double volume = 6;
-    string liquid_class = 7;
-    string tip_type = 8;
-    int32 tip_mask = 9;
+    string rack_label     = 1;
+    string rack_id        = 2;
+    string rack_type      = 3;
+    int32  position       = 4;
+    string tube_id        = 5;
+    double volume         = 6;    // µL
+    string liquid_class   = 7;
+    string tip_type       = 8;
+    int32  tip_mask       = 9;    // bitmask (1=tips 1–4)
   }
-
   message Dispense {
-    string rack_label = 1;
-    string rack_id = 2;
-    string rack_type = 3;
-    int32 position = 4;
-    string tube_id = 5;
-    double volume = 6;
-    string liquid_class = 7;
-    string tip_type = 8;
-    int32 tip_mask = 9;
+    string rack_label     = 1;
+    string rack_id        = 2;
+    string rack_type      = 3;
+    int32  position       = 4;
+    string tube_id        = 5;
+    double volume         = 6;
+    string liquid_class   = 7;
+    string tip_type       = 8;
+    int32  tip_mask       = 9;
   }
-
   message Mix {
-    string rack_label = 1;
-    string rack_id = 2;
-    string rack_type = 3;
-    int32 position = 4;
-    string tube_id = 5;
-    double volume = 6;
-    string liquid_class = 7;
-    string tip_type = 8;
-    int32 tip_mask = 9;
-    int32 cycles = 10;
+    string rack_label     = 1;
+    string rack_id        = 2;
+    string rack_type      = 3;
+    int32  position       = 4;
+    string tube_id        = 5;
+    double volume         = 6;
+    string liquid_class   = 7;
+    string tip_type       = 8;
+    int32  tip_mask       = 9;
+    int32  cycles         = 10;
   }
-
   message WashTips {
     string wash_station_id = 1;
   }
-
   message GetDiTi {
-    string rack_label = 1;
-    string rack_id = 2;
-    string rack_type = 3;
-    int32 position = 4;
+    string rack_label     = 1;
+    string rack_id        = 2;
+    string rack_type      = 3;
+    int32  position       = 4;
+    int32  tip_count      = 5;
   }
-
   message DropDiTi {
-    string rack_label = 1;
-    string rack_id = 2;
-    string rack_type = 3;
-    int32 position = 4;
+    string rack_label     = 1;
+    string rack_id        = 2;
+    string rack_type      = 3;
+    int32  position       = 4;
   }
 
-  message GetStatus {}
+  // ── Status queries ───────────────────────────────────────────────────
+
+  message GetSystemStatus {}
+  // Response: uint32 status_bitmask (SC_STATUS flags)
+
+  message GetScriptStatus {
+    int64 script_id       = 1;
+  }
+  // Response: ScriptStatus enum
+
+  message GetProcessStatus {
+    int64 process_id      = 1;
+  }
+  // Response: ProcessStatus enum
+
+  // ── System info ──────────────────────────────────────────────────────
+
+  message GetSystemInfo {}
+  // Response: bool plus_mode, bool simulation_mode, string version,
+  //           string serial_number
+
+  // ── Remote mode / UI ─────────────────────────────────────────────────
+
+  message SetRemoteMode {
+    bool enable           = 1;
+  }
+  message HideGUI {
+    bool hide             = 1;
+  }
+  message SetLamp {
+    LampStatus status     = 1;
+  }
+  message SetDoorLocks {
+    bool close_locked     = 1;
+  }
+
+  // ── Liquid class queries ─────────────────────────────────────────────
+
+  message GetLCCount {}
+  // Response: int32 count
+  message GetLCInfo {
+    int32 index           = 1;   // 0-based
+  }
+  // Response: string name, bool is_default, bool is_customized
+  message GetSubLCCount {
+    int32 lc_index        = 1;
+  }
+  // Response: int32 count
+  message GetSubLCInfo {
+    int32 lc_index        = 1;
+    int32 sub_lc_index    = 2;
+  }
+  // Response: string tip_type, bool is_all_volumes, double min_volume,
+  //           double max_volume
+
+  // ── Device queries ───────────────────────────────────────────────────
+
+  message GetDeviceCount {}
+  // Response: int32 count
+  message GetDevice {
+    int32 index           = 1;   // 0-based, or string call_name
+    string call_name      = 2;   // alternative to index
+  }
+  // Response: string name, string driver_version
+
+  // ── Labware / Deck ───────────────────────────────────────────────────
+
+  message GetNumberOfRacks {
+    int64 script_id       = 1;
+  }
+  // Response: int32 count
+  message GetRack {
+    int64 script_id       = 1;
+    int32 index           = 2;   // 0-based
+  }
+  // Response: string name, string label, int32 location, int32 grid,
+  //           int32 site, string carrier_name
+
+  // ── Variables ────────────────────────────────────────────────────────
+
+  message GetScriptVariable {
+    int64  script_id      = 1;
+    string variable_name  = 2;
+  }
+  // Response: string value
+  message SetScriptVariable {
+    int64  script_id      = 1;
+    string variable_name  = 2;
+    string value          = 3;
+  }
+
+  // ── Script interface ─────────────────────────────────────────────────
+
+  message AddScriptLine {
+    string esc_command    = 1;   // full .esc format command (e.g. "Aspirate(...);")
+  }
+  message SaveScript {
+    string file_name      = 1;   // e.g. "MyScript.esc"
+    string directory      = 2;   // defaults to "Database\\Scripts\\"
+  }
+
+  // ── Error handling ───────────────────────────────────────────────────
+
+  message ClearError {}
 }
 
+// ============================================================================
+// Config — connection and authentication settings
+// ============================================================================
+
 message Config {
-  string evoware_path = 1;
-  bool simulate = 2;
+  string evoware_user     = 1;
+  string evoware_password = 2;
+  bool   plus_mode        = 3;   // Standard vs. Plus EVOware license
+  bool   simulate         = 4;
+  bool   hide_gui         = 5;   // Run EVOware headless
+  bool   remote_mode      = 6;   // Enable remote lamp/door control
+}
+
+// ============================================================================
+// Status enums — mirror EVOware COM status codes
+// ============================================================================
+
+// SC_STATUS bitmask flags (OR-combined)
+enum SystemStatusFlag {
+  STATUS_NO_INSTRUMENTS    = 0;
+  STATUS_LOADING           = 1;
+  STATUS_NOT_INITIALIZED   = 2;
+  STATUS_INITIALIZING      = 3;
+  STATUS_INITIALIZED       = 4;
+  STATUS_SHUTTINGDOWN      = 5;
+  STATUS_SHUTDOWN          = 6;
+  STATUS_UNLOADING         = 7;
+  STATUS_RUNNING           = 8;
+  STATUS_PAUSE_REQUESTED   = 9;
+  STATUS_PAUSED            = 10;
+  STATUS_RESOURCE_MISSING  = 11;
+  STATUS_DEADLOCK          = 12;
+  STATUS_EXECUTION_ERROR   = 13;
+  STATUS_TIME_VIOLATION    = 14;
+  STATUS_IDLE              = 16;
+  STATUS_BUSY              = 17;
+  STATUS_ABORTED           = 18;
+  STATUS_STOPPED           = 19;
+  STATUS_ERROR             = 21;
+  STATUS_SIMULATION        = 22;
+  STATUS_LOGON_ERROR       = 23;
+  STATUS_CONNECTION_ERROR  = 24;
+}
+
+enum ScriptStatus {
+  SS_UNKNOWN         = 0;
+  SS_IDLE            = 1;
+  SS_BUSY            = 2;
+  SS_ABORTED         = 3;
+  SS_STOPPED         = 4;
+  SS_PAUSED          = 6;
+  SS_ERROR           = 7;
+  SS_SIMULATION      = 8;
+  SS_STATUS_ERROR    = 9;
+}
+
+enum ProcessStatus {
+  PS_IDLE     = 0;
+  PS_BUSY     = 1;
+  PS_FINISHED = 2;
+  PS_ERROR    = 3;
+  PS_STOPPED  = 4;
+}
+
+enum LampStatus {
+  LAMP_OFF           = 0;
+  LAMP_GREEN         = 1;
+  LAMP_GREEN_FLASH   = 2;
+  LAMP_RED_FLASH     = 3;
 }
